@@ -1,0 +1,24 @@
+{
+  "name": "12306node",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "hongrunhui",
+  "license": "ISC",
+  "devDependencies": {
+    "node-schedule": "*",
+    "nodemailer": "^4.6.4"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "commander": "^2.9.0",
+    "inquirer": "^4.0.1",
+    "nodemailer-smtp-transport": "^2.7.4",
+    "request": "^2.83.0",
+    "scanf": "^0.7.3",
+    "webpage": "^0.3.0"
+  }
+}
