@@ -1,6 +1,3 @@
-首先安装模块
-npm install
-
 开始程序   
 node index.js 
 根据问题一步步填即可。

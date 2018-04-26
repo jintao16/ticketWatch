@@ -1,0 +1,40 @@
+{
+    "time": "2018-04-29",
+    "from_station": {
+        "name": "深圳北",
+        "code": "IOQ",
+        "pinyin": "shenzhenbei",
+        "suoxie": "szb",
+        "other": "2553@szh"
+    },
+    "from_station_": "深圳北",
+    "end_station": {
+        "name": "武汉",
+        "code": "WHN",
+        "pinyin": "wuhan",
+        "suoxie": "wh",
+        "other": "66@wjx"
+    },
+    "end_station_": "武汉",
+    "train_num": [
+        "G1002",
+        "G1312",
+        "G1004",
+        "G74",
+        "G1006",
+        "G818",
+        "G532",
+        "G822",
+        "G1008",
+        "G1010",
+        "G1032",
+        "G826"
+    ],
+    "need_tickets": [
+        "二等座"
+    ],
+    "your_mail": "jintao16_ce@163.com",
+    "mail_pass": "021417jt",
+    "ticket_type": "ADULT",
+    "receive_mail": "jintao16@qq.com"
+}

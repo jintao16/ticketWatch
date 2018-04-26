@@ -20,7 +20,10 @@ let isRewrite = hasArgv(process.argv, '-r');
 let isUpdateStation = hasArgv(process.argv, '-t');
 let trainData = [];
 
-
+if (isUpdateStation) {
+    stationJson();
+    return;
+}
 
 
 function hasArgv(argv, filter) {
@@ -155,7 +158,7 @@ let questions = [
     {
         type: 'input',
         name: 'mail_pass',
-        message: '输入密码或者邮箱授权码-mail_pass：',
+        message: '邮箱授权码（不知道百度）-mail_pass：',
         validate(input) {
             return true;
         }
@@ -273,6 +276,7 @@ function analyzeTicket(ct, cv) {
 
 var ticketStatus = [];//保存余票状态
 var ticketStatus2 = [];//保存余票状态用作对比
+var allStatus = [];//保存所有车次信息
 
 var statusFlag = true;
 /*
@@ -306,20 +310,29 @@ function queryTickets(config) {
     var req = https.get(options, function (res) {
         // 开启一个 SMTP 连接池
         var transport = nodemailer.createTransport(smtpTransport({
-            host: "smtp.qq.com", // 主机
-            secure: true, // 使用 SSL
-            secureConnection: true, // 使用 SSL
-            port: 465, // SMTP 端口
-            auth: {
-                user: config.your_mail, // 账号
-                pass: config.mail_pass // 密码或者授权码
-            }
+            // host: "smtp.qq.com", // 主机
+            // secure: true, // 使用 SSL
+            // secureConnection: true, // 使用 SSL
+            // port: 465, // SMTP 端口
+            // auth: {
+            //     user: config.your_mail, // 账号
+            //     pass: config.mail_pass // 密码或者授权码
+            // }
+
+            host: "smtp.163.com",//邮箱的服务器地址，如果你要换其他类型邮箱（如QQ）的话，你要去找他们对应的服务器，
+			secureConnection: true,
+			port: 465,//端口，这些都是163给定的，自己到网上查163邮箱的服务器信息
+			auth: {
+				user: config.your_mail,//邮箱账号
+				pass: config.mail_pass,//邮箱授权码
+			}
         }));
 
         var data = '';
         res.on('data', function (buff) {
             data += buff;//查询结果（JSON格式）
         });
+
         res.on('end', function () {
             let jsonData;
             let trainData;
@@ -347,6 +360,7 @@ function queryTickets(config) {
                 var cur = jsonData[i];
                 jsonMap[cur.queryLeftNewDTO.station_train_code] = cur.queryLeftNewDTO;
             }
+
             /*过滤不需要的车次*/
             var train_arr = config.train_num;
             trainData = [];
@@ -372,10 +386,11 @@ function queryTickets(config) {
                     '无座': cur_train.wz_num, '硬卧': cur_train.yw_num, '硬座': cur_train.yz_num,
                     '二等座': cur_train.ze_num, '一等座': cur_train.zy_num, '商务座': cur_train.swz_num, '动卧': cur_train.srrb_num
                 }
+                allStatus.push(trains);
                 console.log(trains)
                 for (var i in trains) {
                     needTicket.map((item) => {
-                        if (item == i && trains[i] != '无' && trains[i] != 0 && trains[i] != '--') {
+                        if (item == i && (trains[i] !== '无' && trains[i] !== '--')) {
                             // console.log('有票啦！ ' + cur_tranin_code + ':' + i + ' ' + trains[i]);
                             ticketStatus.push(cur_tranin_code + ':' + i + ' ' + trains[i]);
                         }
@@ -385,7 +400,7 @@ function queryTickets(config) {
 
             console.log(JSON.stringify(ticketStatus))
             console.log(JSON.stringify(ticketStatus2))
-            
+
             if (ticketStatus.length != 0 && (JSON.stringify(ticketStatus) != JSON.stringify(ticketStatus2))) {//有票并且状态未改变不用发邮件
                 // 设置邮件内容
                 var mailOptions = {
@@ -393,32 +408,91 @@ function queryTickets(config) {
                     to: config.receive_mail, // 收件列表
                     subject: '有票啦！ ', // 标题
                     text: "ticket",
-                    html: config.time+' '+JSON.stringify(ticketStatus)
+                    html: config.time + ' ' + JSON.stringify(ticketStatus)
                 }
-                ticketStatus2=[]
+                ticketStatus2 = []
                 ticketStatus.map(item => {
                     ticketStatus2.push(item)
                 });
-                        // console.log("邮件发送成功！");
+                // console.log("邮件发送成功！");
 
                 // 发送邮件
 
-                 transport.sendMail(mailOptions, function (error, response) {
-                     if (error) {
-                         console.error(error);
-                     } else {
-                         // console.log(response);
-                         console.log("邮件发送成功！");
-                     }
-                     transport.close(); // 如果没用，关闭连接池
-                 });
+                transport.sendMail(mailOptions, function (error, response) {
+                    if (error) {
+                        console.error(error);
+                    } else {
+                        // console.log(response);
+                        console.log("邮件发送成功！");
+                    }
+                    transport.close(); // 如果没用，关闭连接池
+                });
 
             }
-            // fs.writeFile('./train.json',data);
+            // fs.writeFile('train.json',JSON.stringify(allStatus));  // 保存车次信息
         });
     });
-
     req.on('error', function (err) {
+        console.error(err.code);
+    });
+}
+
+/*
+* 爬取全国车站信息并生成JSON文件
+*/
+function stationJson() {
+    let _opt = {
+        hostname: 'kyfw.12306.cn',
+        path: '/otn/resources/js/framework/station_name.js?station_version=1.9044',
+        ca: [ca],
+        rejectUnauthorized: false
+    };
+    let _data = '';
+    let _req = https.get(_opt, function (res) {
+        res.on('data', function (buff) {
+            _data += buff;
+        });
+        res.on('end', function () {
+            console.log(_data + '\n如果前面的信息不是车站信息，那就说明没有抓取成功，可能需要升级一下station_version');
+            try {
+                let re = /\|[\u4e00-\u9fa5]+\|[A-Z]{3}\|\w+\|\w+\|\w+@\w+/g;
+                // console.log('data',_data.match(re));
+                let stationMap = {};
+                let stationArray = [];
+                let temp = _data.match(re);
+                [].forEach.call(temp, function (item, i) {
+                    // console.log(item,i);
+                    let t = item.split("|");
+                    let info = {
+                        name: t[1],
+                        code: t[2],
+                        pinyin: t[3],
+                        suoxie: t[4],
+                        other: t[5]
+                    };
+                    stationArray.push(t[3]);
+                    if (!stationMap[t[3]]) {
+                        stationMap[t[3]] = info;
+                    }
+                    else {
+                        if (Object.prototype.toString.call(stationMap[t[3]]) === '[object Array]') {
+                            stationMap[t[3]] = [...stationMap[t[3]], info];
+                        }
+                        else {
+                            stationMap[t[3]] = [stationMap[t[3]], info];
+                        }
+                    }
+                });
+                // console.log(stationMap["hefei"]);
+                fs.writeFile('station.json', JSON.stringify({ stationName: stationArray, stationInfo: stationMap }));
+                console.log('成功更新车站信息！');
+            } catch (e) {
+                console.log('更新车站信息失败：', e);
+                return null;
+            }
+        });
+    });
+    _req.on('error', function (err) {
         console.error(err.code);
     });
 }
